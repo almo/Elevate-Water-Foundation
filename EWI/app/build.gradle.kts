@@ -9,6 +9,21 @@ plugins {
 dependencies {
     implementation("org.apache.commons:commons-text")
     implementation(project(":core"))
+    
+   // Server engine and core
+    implementation(libs.ktor.server.core)
+    implementation(libs.ktor.server.netty)
+    
+    // Auth features
+    implementation(libs.ktor.server.auth)
+    implementation(libs.ktor.server.auth.jwt)
+    
+    // JSON & Serialization
+    implementation(libs.ktor.server.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
+    
+    // Logging
+    implementation(libs.logback.classic)
 }
 
 application {
