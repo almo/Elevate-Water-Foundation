@@ -11,4 +11,4 @@ plugins {
 }
 
 rootProject.name = "EWI"
-include("app", "core", "utilities")
+include("server", "core", "utilities")

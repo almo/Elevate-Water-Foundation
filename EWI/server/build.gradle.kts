@@ -4,6 +4,7 @@
 
 plugins {
     id("buildlogic.kotlin-application-conventions")
+    application
 }
 
 dependencies {
@@ -28,5 +29,5 @@ dependencies {
 
 application {
     // Define the main class for the application.
-    mainClass = "org.ewi.app.AppKt"
+    mainClass = "org.ewi.server.EWIServer"
 }
