@@ -4,10 +4,13 @@
 
 plugins {
     id("buildlogic.kotlin-application-conventions")
-    application
+    alias(libs.plugins.shadow)
+    alias(libs.plugins.appengine)
 }
 
 dependencies {
+    implementation(libs.ktor.server.call.logging)
+
     implementation("org.apache.commons:commons-text")
     implementation(project(":core"))
     
@@ -30,4 +33,26 @@ dependencies {
 application {
     // Define the main class for the application.
     mainClass = "org.ewi.server.EWIServer"
+}
+
+// App Engine specific configuration
+appengine {
+    
+    stage {
+        setArtifact(layout.buildDirectory.file("libs/EWIServer.jar").get().asFile)
+    }
+
+    deploy {
+        projectId = "elevate-water-foundation" // Picks up project from gcloud CLI
+        version = "alpha-001"
+    }
+}
+
+tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
+    mergeServiceFiles()
+    archiveFileName.set("EWIServer.jar")
+    
+    manifest {
+        attributes["Main-Class"] = "org.ewi.server.EWIServer"
+    }
 }
