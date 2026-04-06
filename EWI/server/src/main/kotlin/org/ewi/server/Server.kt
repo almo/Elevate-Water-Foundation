@@ -3,6 +3,7 @@
  */
 package org.ewi.server
 
+import io.ktor.http.ContentType
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
@@ -28,7 +29,7 @@ object EWIServer {
             .start(wait = true)
     }
 
-    val logger = org.slf4j.LoggerFactory.getLogger("org.ewi.server.Module")
+    val logger = org.slf4j.LoggerFactory.getLogger(EWIServer::class.java)
 }
 
 /**
@@ -55,7 +56,7 @@ fun Application.configureMonitoring() {
 fun Application.configureRouting() {
     routing {
         get("/") {
-            call.respondText("EWIServer is running!")
+            call.respondText("EWIServer is running!", ContentType.Text.Plain)
         }
     }
 }
