@@ -1,4 +1,4 @@
-name: Java CI with Gradle
+name: EWI Server - Java CI with Gradle
 
 on:
   push:
