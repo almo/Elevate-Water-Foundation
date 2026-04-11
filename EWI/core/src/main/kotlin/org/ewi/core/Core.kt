@@ -3,8 +3,7 @@
  */
 package org.ewi.core
 
-import org.ewi.utilities.World
 
 object HelloWorld {
-    val message = "Hello" + " " + World.message + "!"
+    val message = "Hello" + " " + "World" + "!"
 }

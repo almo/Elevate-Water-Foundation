@@ -5,6 +5,7 @@ import Alpine from 'alpinejs';
 import ajax from '@imacrayon/alpine-ajax';
 
 // Architectural Layer: Stores & Components
+import authStore from './auth.js';
 import i18nStore from './i18n.js';
 import mainData from './components/main/index.js';
 import settings from './components/settings/index.js';
@@ -14,6 +15,7 @@ import sidebarNav from './components/sidebar/index.js';
 Alpine.plugin(ajax);
 
 // Register Stores & Data Components
+Alpine.store('auth', authStore);
 Alpine.store('i18n', i18nStore);
 Alpine.data('mainData', mainData);
 Alpine.data('settings', settings);
@@ -23,40 +25,56 @@ Alpine.data('sidebarNav', sidebarNav);
 Alpine.start();
 
 // ==========================================
-// INITIAL FRAGMENT BOOTLOADER
+// AJAX INTERCEPTOR: Attach Firebase Token
 // ==========================================
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. Get the URL the user landed on (e.g., '/' or '/settings')
-    const currentPath = window.location.pathname;
-    const contentTarget = document.getElementById('content');
-    
-    if (contentTarget) {
-        // 2. Trigger your CSS spinner so the user knows it's loading
-        contentTarget.setAttribute('aria-busy', 'true');
-
-        // 3. Make the initial AJAX call, mimicking Alpine AJAX's header
-        fetch(currentPath, {
-            headers: {
-                'X-Alpine-Request': 'true'
-            }
-        })
-        .then(response => {
-            if (!response.ok) throw new Error('Fragment not found');
-            return response.text();
-        })
-        .then(html => {
-            // 4. Inject the HTML. 
-            // Because Alpine uses a MutationObserver, it will automatically 
-            // detect this new HTML, parse it, and initialize any x-data components inside!
-            contentTarget.innerHTML = html;
-        })
-        .catch(error => {
-            console.error("Failed to load initial view:", error);
-            contentTarget.innerHTML = `<div class="error-message" style="padding: 2rem;">Failed to load module.</div>`;
-        })
-        .finally(() => {
-            // 5. Remove the spinner
-            contentTarget.removeAttribute('aria-busy');
-        });
+document.addEventListener('alpine-ajax:before-send', async (event) => {
+    const token = await authStore.getToken();
+    if (token) {
+        event.detail.config.headers['Authorization'] = `Bearer ${token}`;
     }
 });
+
+// ==========================================
+// BOOTLOADER: Wait for Auth then Load Fragment
+// ==========================================
+const loadInitialFragment = async () => {
+    const contentTarget = document.getElementById('content');
+    if (!contentTarget) return;
+
+    // 1. Wait for Firebase to determine if we have a user
+    // We check the initialized state from our authStore
+    if (!authStore.initialized) {
+        setTimeout(loadInitialFragment, 50); // Retry until initialized
+        return;
+    }
+
+    // 2. If no user, don't fetch (the index.html template handles showing login)
+    if (!authStore.user) return;
+
+    // 3. User is authenticated, proceed with fetch
+    const currentPath = window.location.pathname;
+    contentTarget.setAttribute('aria-busy', 'true');
+
+    try {
+        const token = await authStore.getToken();
+        const response = await fetch(currentPath, {
+            headers: {
+                'X-Alpine-Request': 'true',
+                'Authorization': `Bearer ${token}` // Manually add token for the raw fetch
+            }
+        });
+
+        if (!response.ok) throw new Error(`Server returned ${response.status}`);
+
+        const html = await response.text();
+        contentTarget.innerHTML = html;
+    } catch (error) {
+        console.error("Failed to load initial view:", error);
+        contentTarget.innerHTML = `<div class="error-message" style="padding: 2rem;">Failed to load module.</div>`;
+    } finally {
+        contentTarget.removeAttribute('aria-busy');
+    }
+};
+
+// Start the boot sequence
+document.addEventListener('DOMContentLoaded', loadInitialFragment);

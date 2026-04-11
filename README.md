@@ -17,6 +17,11 @@ Elevate Water Index (EWI): A multi-scale water risk platform. Using Kotlin/Ktor 
   * Configure Google Analytics
   * Adding Web App
 
+* Authentication
+  * Sign-in with Google
+  * Setup Authorize Domains
+  * Upgrade to GCIP (Identity Platform)
+
 ## Github
 Setting up actions.
 Setup signature for commits

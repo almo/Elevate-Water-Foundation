@@ -29,6 +29,13 @@ dependencies {
     
     // Logging
     implementation(libs.logback.classic)
+
+    // Firebase
+    // Firebase Admin SDK for token verification
+    implementation(libs.firebase.admin)
+    
+    // Google Auth for service account handling in App Engine
+    implementation(libs.google.auth.library)
 }
 
 application {
@@ -44,7 +51,7 @@ appengine {
 
     deploy {
         projectId = "elevate-water-foundation" // Picks up project from gcloud CLI
-        version = "alpha-001"
+        version = "alpha-013"
     }
 }
 
@@ -96,4 +103,37 @@ tasks.named<ProcessResources>("processResources") {
 // 5. Ensure it runs before App Engine deployment (just to be absolutely safe)
 tasks.matching { it.name == "appengineDeploy" }.configureEach {
     dependsOn(buildFrontend)
+}
+
+// =========================================================
+// FIREBASE FUNCTIONS INTEGRATION
+// =========================================================
+
+// Helper to run npm commands cross-platform
+fun Exec.npm(vararg args: String) {
+    if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+        commandLine("cmd", "/c", "npm", *args)
+    } else {
+        // This 'sh -c' approach is much more reliable on macOS
+        commandLine("sh", "-c", "npm ${args.joinToString(" ")}")
+    }
+}
+
+val installFunctionsDeps by tasks.registering(Exec::class) {
+    group = "build"
+    // Use rootProject.file to ensure we go to the actual functions directory
+    workingDir = rootProject.file("functions") 
+    npm("install")
+}
+
+val buildFunctions by tasks.registering(Exec::class) {
+    group = "build"
+    dependsOn(installFunctionsDeps)
+    workingDir = rootProject.file("functions")
+    npm("run", "build")
+}
+
+// Ensure the main build task triggers this
+tasks.named("build") {
+    dependsOn(buildFunctions)
 }
