@@ -1,0 +1,54 @@
+<main id="content" class="main-content">
+    
+    <div x-data="mainData" class="main-container dashboard-container">
+        
+        <h1 x-text="$store.i18n.t('dashboard.title')" style="margin-bottom: var(--space-1);"></h1>
+        <p x-text="$store.i18n.t('dashboard.welcome')" style="color: var(--color-neutral-600); margin-bottom: var(--space-4);"></p>
+
+        <h2 style="font-size: 1.25rem; font-weight: 600; color: var(--color-neutral-800); border-bottom: 1px solid var(--color-neutral-200); padding-bottom: var(--space-1); margin-bottom: var(--space-3);">
+            Macro Risks Overview
+        </h2>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-6);">
+            <template x-for="risk in macroRisks" :key="risk.id">
+                
+                <div class="card" style="margin-bottom: 0;">
+                    <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--color-neutral-800); margin-bottom: var(--space-2);" x-text="risk.region"></h3>
+                    
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2);">
+                        <span style="font-size: 0.875rem; font-weight: 500; color: var(--color-neutral-600);">Risk Level:</span>
+                        <span style="padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;" 
+                              :style="`color: ${risk.textColor}; background-color: ${risk.bgColor};`" 
+                              x-text="risk.level">
+                        </span>
+                    </div>
+                    
+                    <div style="border-top: 1px solid var(--color-neutral-200); padding-top: var(--space-2); margin-top: var(--space-1);">
+                        <p style="font-size: 0.75rem; color: var(--color-neutral-500); margin-bottom: 2px;">Affected Population</p>
+                        <p style="font-size: 1.25rem; font-weight: 600; color: var(--color-neutral-800); margin: 0;" x-text="risk.affectedPopulation"></p>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <h2 style="font-size: 1.25rem; font-weight: 600; color: var(--color-neutral-800); border-bottom: 1px solid var(--color-neutral-200); padding-bottom: var(--space-1); margin-bottom: var(--space-3);">
+            Recent Activity
+        </h2>
+        
+        <div class="card" style="max-width: 800px; padding: 0; overflow: hidden;">
+            <ul style="list-style: none; margin: 0; padding: 0;">
+                <template x-for="(activity, index) in recentActivity" :key="activity.id">
+                    <li style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3); transition: background-color 0.15s ease;"
+                        :style="index !== recentActivity.length - 1 ? 'border-bottom: 1px solid var(--color-neutral-200);' : ''"
+                        onmouseover="this.style.backgroundColor='var(--color-neutral-50)'"
+                        onmouseout="this.style.backgroundColor='transparent'">
+                        
+                        <span style="font-size: 0.875rem; color: var(--color-neutral-800);" x-text="activity.action"></span>
+                        <span style="font-size: 0.75rem; font-weight: 500; color: var(--color-neutral-500);" x-text="activity.date"></span>
+                    </li>
+                </template>
+            </ul>
+        </div>
+        
+    </div>
+</main>

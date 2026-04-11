@@ -1,0 +1,18 @@
+{
+  "nav.ew_index": "Indice EW",
+  "nav.datasets": "Conjunto de Datos",
+  "nav.dashboard": "Panel",
+  "nav.settings": "Configuración",
+  "nav.logout": "Cerrar sesión",
+  "lang.en": "English",
+  "lang.es": "Español",
+  "dashboard.title": "Resumen de Riesgos de Agua",
+  "dashboard.welcome": "Bienvenido a la plataforma Elevate Water Index. Vea su descomposición de riesgos a nivel macro a continuación.",
+  "settings.title": "Configuración de la Cuenta",
+  "settings.profile": "Detalles del Perfil",
+  "settings.save": "Guardar Cambios",
+  "settings.success": "Configuración guardada exitosamente.",
+  "form.name": "Nombre Completo",
+  "form.email": "Correo Electrónico",
+  "form.error.required": "Este campo es obligatorio"
+}

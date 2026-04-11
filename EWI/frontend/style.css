@@ -1,0 +1,343 @@
+:root {
+    /* UX/UI: Base-8 Spacing System
+       Why base-8? Human perception favors predictable rhythms. Base-8 scales beautifully without fractional 
+       pixels, making it the standard for modern interface design (Google Material, Apple HIG).
+       1rem = 16px. Therefore 0.5rem = 8px, 1.5rem = 24px, etc. */
+    --space-1: 0.5rem;   /* 8px */
+    --space-2: 1rem;     /* 16px */
+    --space-3: 1.5rem;   /* 24px */
+    --space-4: 2rem;     /* 32px */
+    --space-6: 3rem;     /* 48px */
+    --space-8: 4rem;     /* 64px */
+
+    /* UX/UI: Professional Constrained Color Palette
+       We avoid harsh blacks/whites. Deep blue-grays are used for text to reduce eye strain. 
+       A singular primary blue directs user attention to actions. */
+    --color-primary-500: #2563eb;
+    --color-primary-600: #1d4ed8;
+    --color-primary-100: #dbeafe;
+    
+    --color-neutral-50: #f8fafc;
+    --color-neutral-100: #f1f5f9;
+    --color-neutral-200: #e2e8f0;
+    --color-neutral-300: #cbd5e1;
+    --color-neutral-600: #475569;
+    --color-neutral-800: #1e293b;
+    --color-neutral-900: #0f172a;
+
+    --color-error: #ef4444;
+    
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* GLOBAL RESET */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-sans);
+    color: var(--color-neutral-800);
+    background-color: var(--color-neutral-50);
+    line-height: 1.5;
+}
+
+/* UX/UI: Shell Architecture
+   The wrapper holds the fixed height layout. The flex layout enables the sidebar to smoothly 
+   disappear off-screen horizontally, allowing the right panel to dynamically grow to fill the gap. */
+.layout-wrapper {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* SIDEBAR */
+.sidebar {
+    width: 260px;
+    flex-shrink: 0; /* Prevents sidebar from squishing when screen gets small */
+    background-color: white;
+    border-right: 1px solid var(--color-neutral-200);
+    display: flex;
+    flex-direction: column;
+    /* CRITICAL UX: The transition creates a smooth slide-out. 300ms is the sweet spot for UI animations: 
+       fast enough to feel responsive, slow enough to be perceived cleanly. */
+    transition: margin-left 0.3s ease-in-out;
+    overflow-y: auto;
+}
+
+/* The closed state pulls the sidebar off-canvas to the left by its exact width */
+.sidebar.closed {
+    margin-left: -260px;
+}
+
+.sidebar-brand {
+    font-weight: 600; 
+    font-size: 1.25rem; 
+    padding: var(--space-4) var(--space-3);
+    color: var(--color-neutral-900);
+}
+
+.nav-group {
+    display: flex;
+    flex-direction: column;
+    padding: 0 var(--space-2);
+    gap: 4px; /* Tight gap to group links logically */
+}
+
+.sidebar-bottom {
+    margin-top: auto; /* Pushes utility links to the absolute bottom of the sidebar */
+    padding-bottom: var(--space-4);
+    border-top: 1px solid var(--color-neutral-200);
+    padding-top: var(--space-2);
+}
+
+/* NAVIGATION LINKS */
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-2);
+    border-radius: 6px;
+    color: var(--color-neutral-600);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: background-color 0.15s ease, color 0.15s ease;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+.nav-link .icon { width: 20px; height: 20px; flex-shrink: 0; }
+.nav-link.w-full { width: 100%; }
+.nav-link.text-left { text-align: left; }
+.nav-link.text-error { color: var(--color-error); }
+
+/* Hover States */
+.nav-link:hover {
+    background-color: var(--color-neutral-100);
+    color: var(--color-neutral-900);
+}
+
+/* Active Highlight State 
+   UX/UI: Primary color background wash + deeper primary text explicitly signals the current context. */
+.nav-link.active {
+    background-color: var(--color-primary-100);
+    color: var(--color-primary-600);
+}
+
+/* MAIN CONTENT AREA */
+.main-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0; /* Prevents flex children from breaking layout bounds */
+}
+
+.top-header {
+    height: 60px;
+    background-color: white;
+    border-bottom: 1px solid var(--color-neutral-200);
+    display: flex;
+    align-items: center;
+    padding: 0 var(--space-4);
+}
+
+.menu-toggle {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--color-neutral-600);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+}
+
+.menu-toggle:hover {
+    background-color: var(--color-neutral-100);
+    color: var(--color-neutral-900);
+}
+
+.main-content {
+    flex: 1;
+    padding: var(--space-6);
+    overflow-y: auto;
+    position: relative; /* Crucial for the absolute skeleton overlay */
+}
+
+/* UX/UI: Skeleton / Loading State
+   Why? When Alpine AJAX fetches the next fragment, we inject an overlay. 
+   This prevents jarring layout jumps ("Cumulative Layout Shift") and signals to the user 
+   that work is happening, increasing perceived performance over a blank screen. */
+#content[aria-busy="true"] {
+    opacity: 0.6;
+    pointer-events: none;
+    transition: opacity 0.2s ease-in;
+}
+
+#content[aria-busy="true"]::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 32px;
+    height: 32px;
+    margin-top: -16px;
+    margin-left: -16px;
+    border: 3px solid var(--color-neutral-300);
+    border-top-color: var(--color-primary-500);
+    border-radius: 50%;
+    animation: spinner 0.8s linear infinite;
+}
+
+@keyframes spinner { to { transform: rotate(360deg); } }
+
+/* TYPOGRAPHY */
+h1 { font-size: 1.875rem; font-weight: 600; color: var(--color-neutral-900); margin-bottom: var(--space-2); }
+h2 { font-size: 1.25rem; font-weight: 500; margin-bottom: var(--space-2); }
+p { color: var(--color-neutral-600); margin-bottom: var(--space-3); }
+
+/* UX/UI: Form & Accessibility Styles */
+.form-group {
+    margin-bottom: var(--space-3);
+}
+
+/* UX/UI: Labels above inputs reduce cognitive load by presenting a clear vertical reading rhythm. */
+label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: var(--space-1);
+}
+
+input[type="text"], input[type="email"] {
+    width: 100%;
+    max-width: 400px;
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--color-neutral-300);
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+/* ACCESSIBILITY: Visible focus states are legally required and critical for keyboard navigators. 
+   We use a soft blue halo that matches modern OS-level focus indicators. */
+input:focus {
+    outline: none;
+    border-color: var(--color-primary-500);
+    box-shadow: 0 0 0 3px var(--color-primary-100);
+}
+
+.input-error {
+    border-color: var(--color-error) !important;
+}
+.error-message { color: var(--color-error); font-size: 0.75rem; margin-top: 4px; display: block; }
+
+/* RESPONSIVE DESIGN: Mobile & Tablet */
+@media (max-width: 768px) {
+    .sidebar {
+        position: absolute;
+        height: 100%;
+        z-index: 50; /* Ensure it floats above the main content */
+        box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+    }
+
+    /* When closed on mobile, push it fully off-screen */
+    .sidebar.closed {
+        margin-left: -100%; 
+        box-shadow: none;
+    }
+
+    /* Optional: Add a dark overlay behind the sidebar on mobile */
+    .layout-wrapper::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.5); /* Neutral-900 with opacity */
+        z-index: 40;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+
+    /* When sidebar is open on mobile, show the dark overlay */
+    .layout-wrapper:has(.sidebar:not(.closed))::before {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+/* UX/UI: Base Button Styles */
+/* UX/UI: Modern Base Button */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* Slightly tighter top/bottom padding, wider sides for a sleek pill-like ratio */
+    padding: 0.625rem 1.25rem; 
+    border-radius: 8px; /* Slightly rounder than before */
+    font-weight: 500;
+    font-size: 0.875rem; /* Crisper UI text */
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    /* Using a cubic-bezier makes the animation feel snappy and natural, not robotic */
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1); 
+    border: 1px solid transparent;
+    user-select: none; /* Prevents text highlighting if the user double-clicks */
+}
+
+/* UX/UI: Premium Primary Button (The "Stripe" Effect) */
+.btn-primary {
+    /* Subtle vertical gradient gives a tiny bit of 3D volume */
+    background: linear-gradient(180deg, var(--color-primary-500) 0%, var(--color-primary-600) 100%);
+    color: white;
+    border-color: var(--color-primary-600);
+    
+    /* 1. The inset shadow creates a subtle white highlight on the top edge.
+       2. The standard box-shadow creates a soft drop shadow.
+    */
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 1px 2px rgba(0, 0, 0, 0.05);
+    
+    /* A tiny text-shadow makes white text pop crisply against a colored background */
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1); 
+}
+
+/* Hover: Lift and Glow */
+.btn-primary:hover {
+    /* Lighten the gradient slightly */
+    background: linear-gradient(180deg, #3b82f6 0%, var(--color-primary-500) 100%);
+    /* Increase the glow/shadow */
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 4px 12px -2px rgba(37, 99, 235, 0.25);
+    /* Micro-interaction: physical lift */
+    transform: translateY(-1px); 
+}
+
+/* Active: Press Down */
+.btn-primary:active {
+    transform: translateY(0);
+    background: var(--color-primary-600);
+    /* Invert the shadow to make it feel physically pushed into the page */
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1); 
+}
+
+/* Accessibility: Modern Focus Ring */
+.btn-primary:focus-visible {
+    outline: none;
+    /* A double-ring (white gap + primary color) looks great on any background */
+    box-shadow: 0 0 0 2px var(--color-neutral-50), 0 0 0 4px var(--color-primary-500);
+}
+
+/* UX/UI: Card Container for Data/Forms */
+.card {
+    background: white;
+    border-radius: 12px;
+    padding: var(--space-4);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border: 1px solid var(--color-neutral-200);
+    margin-bottom: var(--space-4);
+}

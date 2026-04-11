@@ -1,0 +1,39 @@
+<main id="content" class="main-content">
+    
+    <div x-data="settings()" class="main-container">
+        
+        <h1 x-text="$store.i18n.t('settings.title')"></h1>
+        <p style="margin-bottom: var(--space-4); color: var(--color-neutral-600);">
+            Manage your account preferences and profile details.
+        </p>
+
+        <div class="card" style="max-width: 500px;">
+            <h2 x-text="$store.i18n.t('settings.profile')"></h2>
+
+            <form @submit.prevent="saveSettings">
+                
+                <div class="form-group">
+                    <label x-text="$store.i18n.t('form.name')"></label>
+                    <input type="text" x-model="profile.name" required 
+                           :class="{ 'input-error': !profile.name && showErrors }">
+                    <span x-show="!profile.name && showErrors" x-text="$store.i18n.t('form.error.required')" class="error-message" style="display: none;"></span>
+                </div>
+
+                <div class="form-group">
+                    <label x-text="$store.i18n.t('form.email')"></label>
+                    <input type="email" x-model="profile.email" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary" :disabled="isSaving" style="margin-top: var(--space-2);">
+                    <span x-show="!isSaving" x-text="$store.i18n.t('settings.save')"></span>
+                    <span x-show="isSaving">Saving...</span>
+                </button>
+                
+                <div x-show="showSuccess" style="display: none; background-color: #dcfce7; color: #166534; padding: var(--space-2); border-radius: 6px; margin-top: var(--space-3);" 
+                     x-text="$store.i18n.t('settings.success')"
+                     x-transition>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>

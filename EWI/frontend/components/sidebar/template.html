@@ -1,0 +1,29 @@
+<main id="content" class="main-content">
+  
+  <div class="main-container stats-container" x-data>
+    <h1 style="margin-bottom: var(--space-1);">System Statistics</h1>
+    <p style="margin-bottom: var(--space-4); color: var(--color-neutral-600);">
+        Platform usage, index generation times, and API telemetry.
+    </p>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-2);">
+       
+       <div class="card">
+          <div style="font-size: 0.875rem; font-weight: 500; color: var(--color-neutral-600); margin-bottom: var(--space-1);">Active API Keys</div>
+          <div style="font-size: 1.75rem; font-weight: 600; color: var(--color-primary-600);">1,204</div>
+       </div>
+       
+       <div class="card">
+          <div style="font-size: 0.875rem; font-weight: 500; color: var(--color-neutral-600); margin-bottom: var(--space-1);">Daily Queries</div>
+          <div style="font-size: 1.75rem; font-weight: 600; color: var(--color-primary-600);">84k</div>
+       </div>
+       
+       <div class="card">
+          <div style="font-size: 0.875rem; font-weight: 500; color: var(--color-neutral-600); margin-bottom: var(--space-1);">P95 API Latency</div>
+          <div style="font-size: 1.75rem; font-weight: 600; color: var(--color-primary-600);">112ms</div>
+       </div>
+
+    </div>
+  </div>
+  
+</main>

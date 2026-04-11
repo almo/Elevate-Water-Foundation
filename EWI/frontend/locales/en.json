@@ -1,0 +1,18 @@
+{
+  "nav.ew_index": "EW Index",
+  "nav.datasets": "Datasets",
+  "nav.dashboard": "Dashboard",
+  "nav.settings": "Settings",
+  "nav.logout": "Logout",
+  "lang.en": "English",
+  "lang.es": "Español",
+  "dashboard.title": "Water Risk Overview",
+  "dashboard.welcome": "Welcome to the Elevate Water Index platform. View your macro-level risk decomposition below.",
+  "settings.title": "Account Settings",
+  "settings.profile": "Profile Details",
+  "settings.save": "Save Changes",
+  "settings.success": "Settings saved successfully.",
+  "form.name": "Full Name",
+  "form.email": "Email Address",
+  "form.error.required": "This field is required"
+}
