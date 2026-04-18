@@ -17,7 +17,7 @@ dependencies {
     
    // Server engine and core
     implementation(libs.ktor.server.core)
-    implementation(libs.ktor.server.netty)
+    implementation(libs.ktor.server.cio)
     
     // Auth features
     implementation(libs.ktor.server.auth)
@@ -27,6 +27,10 @@ dependencies {
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
     
+    // Caching & Headers
+    implementation(libs.ktor.server.conditional.headers)
+    implementation(libs.ktor.server.caching.headers)
+
     // Logging
     implementation(libs.logback.classic)
 

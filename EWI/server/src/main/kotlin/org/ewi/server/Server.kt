@@ -1,5 +1,6 @@
 /*
- *
+ * Main Server Configuration for the Elevate Water Index (EWI) platform.
+ * This file configures Ktor plugins, routing, security, and static asset serving.
  */
 package org.ewi.server
 
@@ -7,21 +8,27 @@ import com.google.auth.oauth2.GoogleCredentials
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.auth.FirebaseAuth
+import io.ktor.http.CacheControl
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import io.ktor.server.cio.*
 import io.ktor.server.engine.*
+import io.ktor.http.content.CachingOptions
 import io.ktor.server.http.content.*
-import io.ktor.server.netty.*
 import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.compression.*
 import io.ktor.server.plugins.compression.zstd.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.slf4j.event.Level
+import io.ktor.server.plugins.conditionalheaders.*
+import io.ktor.server.plugins.cachingheaders.*
 
 /** The main object containing the entry point for the EWIServer application. */
 object EWIServer {
@@ -32,8 +39,9 @@ object EWIServer {
      */
     @JvmStatic
     fun main(args: Array<String>) {
-        // Starts the Ktor server on port 8080 using Netty
-        embeddedServer(Netty, port = 8080, host = "0.0.0.0", module = Application::module)
+        // Starts the Ktor server on port 8080 using CIO
+        // The `wait = true` parameter keeps the server running indefinitely
+        embeddedServer(CIO, port = 8080, host = "0.0.0.0", module = Application::module)
                 .start(wait = true)
     }
 
@@ -42,20 +50,10 @@ object EWIServer {
 
 /** Configures the main application module, initializing monitoring and routing. */
 fun Application.module() {
-
     configureMonitoring()
-    configureCompression()
-
-    if (FirebaseApp.getApps().isEmpty()) {
-        val options = FirebaseOptions.builder()
-            .setCredentials(GoogleCredentials.getApplicationDefault())
-            .setProjectId("elevate-water-foundation")
-            .build()
-
-        FirebaseApp.initializeApp(options)
-    }
-
+    configureFirebase()
     configureSecurity()
+    configureCompression()
     configureRouting()
 }
 
@@ -65,119 +63,158 @@ fun Application.configureMonitoring() {
     EWIServer.logger.info("Logging setup completed")
 }
 
+/** Configures the Firebase Admin SDK. */
+fun Application.configureFirebase() {
+    if (FirebaseApp.getApps().isEmpty()) {
+        val options =
+                FirebaseOptions.builder()
+                        .setCredentials(GoogleCredentials.getApplicationDefault())
+                        .setProjectId("elevate-water-foundation")
+                        .build()
+        FirebaseApp.initializeApp(options)
+        EWIServer.logger.info("Firebase initialized successfully")
+    }
+}
+
 /** Configures security and authentication for the application. */
 fun Application.configureSecurity() {
     install(Authentication) {
+        // Configures the "firebase" bearer authentication provider
         bearer("firebase") {
             authenticate { tokenCredential ->
-                try {
-                    // Verify the token sent from the frontend
-                    val decodedToken =
-                            FirebaseAuth.getInstance().verifyIdToken(tokenCredential.token)
-                    UserIdPrincipal(decodedToken.uid)
-                } catch (e: Exception) {
-                    EWIServer.logger.error("Firebase token verification failed", e)
-                    null // If verification fails, the user is unauthorized
+                // Offload blocking network/crypto work to the IO dispatcher
+                // This prevents thread starvation on Ktor's main event loop
+                withContext(Dispatchers.IO) {
+                    try {
+                        // Verify the token sent from the frontend
+                        val decodedToken =
+                                FirebaseAuth.getInstance().verifyIdToken(tokenCredential.token)
+                        // If successful, return the principal containing the user's UID
+                        UserIdPrincipal(decodedToken.uid)
+                    } catch (e: Exception) {
+                        EWIServer.logger.error("Firebase token verification failed", e)
+                        null // If verification fails, the user is unauthorized
+                    }
                 }
             }
         }
     }
+
+    // Enables ETag and Last-Modified support to help the client cache static files
+    install(ConditionalHeaders) // Enables ETag/Last-Modified support
 }
 
-/** Configures compression for the application.  */
-fun Application.configureCompression(){
-        install(Compression) {
+/** Configures compression for the application. */
+fun Application.configureCompression() {
+    install(Compression) {
         // 1. Enable algorithms and set priorities (higher number = higher priority)
-        zstd (level = 3){ // Available in Ktor 3.4.0+
-            priority = 1.1 
-        }
-        gzip {
-            priority = 1.0
-        }
-        deflate {
-            priority = 0.9
-        }
+        zstd { priority = 1.1 }
+        gzip { priority = 1.0 }
+        deflate { priority = 0.9 }
 
-        // 2. Set a minimum size threshold
-        minimumSize(1024) // Only compress responses larger than 1 KB
-
-        // 3. (Optional) Explicitly match content types
-        // Note: Ktor already ignores audio, video, image, and text/event-stream by default
+        // Only compress payloads larger than 1KB to avoid compression overhead on tiny responses
+        minimumSize(1024)
         matchContentType(
-            ContentType.Application.Json,
-            ContentType.Application.JavaScript,
-            ContentType.Text.Any
+                ContentType.Application.Json,
+                ContentType.Text.Html,
+                ContentType.Text.CSS,
+                ContentType.Application.JavaScript
         )
 
-        // 4. HTTPS Security: Mitigate BREACH attacks
+        // HTTPS Security: Mitigate BREACH attacks (Browser Reconnaissance and Exfiltration via Adaptive Compression of Hypertext)
         condition {
-            // Only compress if the request is NOT a cross-site request
-            request.headers[HttpHeaders.Referrer]?.startsWith("https://planner.catharsis.computer/") == true
+            // Only compress if the request originates from our own domain.
+            // This prevents attackers from using compressed payload sizes to guess secrets.
+            request.headers[HttpHeaders.Referrer]?.startsWith(
+                    "https://elevate-water-foundation.oa.r.appspot.com"
+            ) == true
         }
     }
 }
 
-/** Configures the routing and available endpoints for the application. */
+/** 
+ TODO:
+ 1) Versioning: Ensure your build pipeline adds hashes to filenames 
+ (e.g., style.v2.css). This allows you to set max-age to one year safely.
+ 2) Public vs Private: If any fragment contains user-specific data
+ (like /settings), ensure the header is CacheControl.Private.
+*/
+fun Application.configureCaching() {
+    install(CachingHeaders) {
+        options { _, outgoingContent ->
+            when (outgoingContent.contentType?.withoutParameters()) {
+                // 1. Static Assets (JS, CSS, Images)
+                // Use "immutable" for files with hashes in names (e.g., app.8f2d1.js)
+                ContentType.Application.JavaScript, 
+                ContentType.Text.CSS -> 
+                    CachingOptions(CacheControl.MaxAge(maxAgeSeconds = 31536000)) // 1 year
+
+                // 2. HTML Templates/Fragments
+                // We want these cached briefly or validated via ETag
+                ContentType.Text.Html -> 
+                    CachingOptions(CacheControl.MaxAge(maxAgeSeconds = 3600)) // 1 hour
+                
+                else -> null
+            }
+        }
+    }
+}
+
 fun Application.configureRouting() {
     routing {
-        // 1. PUBLIC ROUTES: The shell and static assets must be accessible to everyone
-        // so they can actually load the login page!
-        authenticate("firebase", optional = true) {
-            get("/") { 
-                val isAlpine = call.request.headers["X-Alpine-Request"] == "true"
-                if (isAlpine && call.principal<UserIdPrincipal>() == null) {
-                    call.respond(HttpStatusCode.Unauthorized, "Please login first.")
-                } else {
-                    call.respondWithFragmentOrShell("main") 
-                }
-            }
-        }
-
-        // Static files (JS/CSS) must be public
+        // Serve static frontend files (CSS, JS, images) from the root path
+        // Reverted to root to match frontend asset expectations (e.g., <script src="/app.js">)
         staticResources("/", "static")
 
-        get("/login") { call.respondWithFragmentOrShell("main") }
+        // Public routes - accessible without a valid Firebase token
+        authenticate("firebase", optional = true) {
+            // The root and login routes load the main application shell
+            get("/") { call.handleHtmxOrAlpineRequest("main") }
+            get("/login") { call.handleHtmxOrAlpineRequest("main") }
+        }
 
-        // 2. PROTECTED ROUTES: Only accessible with a Firebase Token
+        // Protected routes - require a valid Firebase Bearer token
         authenticate("firebase") {
-            get("/api/health") {
-                call.respondText("EWIServer API is running!", ContentType.Text.Plain)
+            route("/api") {
+                get("/health") { call.respond(HttpStatusCode.OK, "EWIServer API is running!") }
             }
-
-            // Fragment requests (X-Alpine-Request: true)
-            get("/settings") { call.respondWithFragmentOrShell("settings") }
             
-            // Re-define the root for AJAX only
-            get("/main-fragment") { 
-                // You might want to point your frontend to fetch /main-fragment 
-                // instead of / for the initial data load
-                call.respondWithFragmentOrShell("main") 
-            }
+            // Fragment routes requested by the Alpine AJAX frontend
+            get("/settings") { call.handleHtmxOrAlpineRequest("settings") }
+            get("/main-fragment") { call.handleHtmxOrAlpineRequest("main") }
         }
     }
 }
 
-// 1. Helper function to handle the Alpine AJAX logic using classpath resources
-suspend fun ApplicationCall.respondWithFragmentOrShell(fragmentName: String) {
-    val isAlpineRequest = request.headers["X-Alpine-Request"] == "true"
-
-    if (isAlpineRequest) {
-        // Serve the specific HTML snippet from the resources/static directory
-        val fragmentResource = resolveResource("static/components/$fragmentName/template.html")
-
-        if (fragmentResource != null) {
-            respond(fragmentResource)
-        } else {
-            respond(HttpStatusCode.NotFound, "Fragment component not found: $fragmentName")
-        }
+/**
+ * Optimized helper for SPA/MPA hybrid loading.
+ * Serves either an HTML fragment (for Alpine AJAX requests) or the full index.html shell.
+ * Now correctly uses resolveResource and extends ApplicationCall.
+ * 
+ * @param fragmentName The name of the component directory to serve if it's a fragment request.
+ */
+suspend fun ApplicationCall.handleHtmxOrAlpineRequest(fragmentName: String) {
+    // Check if the request is an Alpine AJAX request asking for a partial HTML fragment
+    val isFragment = request.headers["X-Alpine-Request"] == "true"
+    
+    // Determine the resource path based on the header
+    val resourcePath = if (isFragment) {
+        "static/components/$fragmentName/template.html"
     } else {
-        // Serve the main index.html shell
-        val shellResource = resolveResource("static/index.html")
+        "static/index.html"
+    }
 
-        if (shellResource != null) {
-            respond(shellResource)
+    // Attempt to locate the file in the classpath resources
+    val resource = resolveResource(resourcePath)
+
+    if (resource != null) {
+        respond(resource)
+    } else {
+        // Fallback or Error handling when the file is missing
+        if (isFragment) {
+            respond(HttpStatusCode.NotFound, "Fragment $fragmentName not found.")
         } else {
-            respond(HttpStatusCode.InternalServerError, "Frontend build not found in resources.")
+            respond(HttpStatusCode.InternalServerError, "Critical: index.html missing from resources.")
         }
     }
 }

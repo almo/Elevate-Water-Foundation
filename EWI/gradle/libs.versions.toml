@@ -16,7 +16,9 @@ kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", v
 
 # Ktor Server Core
 ktor-server-core = { module = "io.ktor:ktor-server-core-jvm", version.ref = "ktor" }
-ktor-server-netty = { module = "io.ktor:ktor-server-netty-jvm", version.ref = "ktor" }
+
+# With the new CIO definition:
+ktor-server-cio = { module = "io.ktor:ktor-server-cio-jvm", version.ref = "ktor" }
 
 # Authentication & OAuth
 ktor-server-auth = { module = "io.ktor:ktor-server-auth-jvm", version.ref = "ktor" }
@@ -30,6 +32,9 @@ ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx
 ktor-server-compression = { module = "io.ktor:ktor-server-compression-jvm", version.ref = "ktor" }
 ktor-server-compression-zstd = { module = "io.ktor:ktor-server-compression-zstd-jvm", version.ref = "ktor" }
 
+# cache
+ktor-server-conditional-headers = { module = "io.ktor:ktor-server-conditional-headers-jvm", version.ref = "ktor" }
+ktor-server-caching-headers = { module = "io.ktor:ktor-server-caching-headers-jvm", version.ref = "ktor" }
 
 # Logging (Standard for Ktor)
 logback-classic = { module = "ch.qos.logback:logback-classic", version = "1.5.6" }
