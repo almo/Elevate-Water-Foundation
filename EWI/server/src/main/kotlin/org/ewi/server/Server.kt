@@ -100,8 +100,6 @@ fun Application.configureSecurity() {
         }
     }
 
-    // Enables ETag and Last-Modified support to help the client cache static files
-    install(ConditionalHeaders) // Enables ETag/Last-Modified support
 }
 
 /** Configures compression for the application. */
