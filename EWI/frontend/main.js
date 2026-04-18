@@ -18,7 +18,6 @@ Alpine.plugin(ajax);
 Alpine.store('auth', authStore);
 Alpine.store('i18n', i18nStore);
 Alpine.data('mainData', mainData);
-Alpine.data('settings', settings);
 Alpine.data('sidebarNav', sidebarNav);
 
 // Initialize framework
@@ -27,10 +26,10 @@ Alpine.start();
 // ==========================================
 // AJAX INTERCEPTOR: Attach Firebase Token
 // ==========================================
-document.addEventListener('alpine-ajax:before-send', async (event) => {
-    const token = await authStore.getToken();
-    if (token) {
-        event.detail.config.headers['Authorization'] = `Bearer ${token}`;
+document.addEventListener('ajax:send', (event) => {
+    // Must be synchronous because Alpine AJAX does not await event listeners before calling fetch()
+    if (authStore.user && authStore.user.accessToken) {
+        event.detail.headers['Authorization'] = `Bearer ${authStore.user.accessToken}`;
     }
 });
 
@@ -75,6 +74,9 @@ const loadInitialFragment = async () => {
         contentTarget.removeAttribute('aria-busy');
     }
 };
+
+// Expose globally so it can be triggered when the login screen transitions to the main layout
+window.loadInitialFragment = loadInitialFragment;
 
 // Start the boot sequence
 document.addEventListener('DOMContentLoaded', loadInitialFragment);

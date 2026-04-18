@@ -3,8 +3,12 @@
  */
 package org.ewi.server
 
+import com.google.auth.oauth2.GoogleCredentials
+import com.google.firebase.FirebaseApp
+import com.google.firebase.FirebaseOptions
 import com.google.firebase.auth.FirebaseAuth
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -12,6 +16,9 @@ import io.ktor.server.engine.*
 import io.ktor.server.http.content.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.calllogging.*
+import io.ktor.server.plugins.compression.*
+import io.ktor.server.plugins.compression.zstd.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.slf4j.event.Level
@@ -35,7 +42,19 @@ object EWIServer {
 
 /** Configures the main application module, initializing monitoring and routing. */
 fun Application.module() {
+
     configureMonitoring()
+    configureCompression()
+
+    if (FirebaseApp.getApps().isEmpty()) {
+        val options = FirebaseOptions.builder()
+            .setCredentials(GoogleCredentials.getApplicationDefault())
+            .setProjectId("elevate-water-foundation")
+            .build()
+
+        FirebaseApp.initializeApp(options)
+    }
+
     configureSecurity()
     configureRouting()
 }
@@ -57,9 +76,43 @@ fun Application.configureSecurity() {
                             FirebaseAuth.getInstance().verifyIdToken(tokenCredential.token)
                     UserIdPrincipal(decodedToken.uid)
                 } catch (e: Exception) {
+                    EWIServer.logger.error("Firebase token verification failed", e)
                     null // If verification fails, the user is unauthorized
                 }
             }
+        }
+    }
+}
+
+/** Configures compression for the application.  */
+fun Application.configureCompression(){
+        install(Compression) {
+        // 1. Enable algorithms and set priorities (higher number = higher priority)
+        zstd (level = 3){ // Available in Ktor 3.4.0+
+            priority = 1.1 
+        }
+        gzip {
+            priority = 1.0
+        }
+        deflate {
+            priority = 0.9
+        }
+
+        // 2. Set a minimum size threshold
+        minimumSize(1024) // Only compress responses larger than 1 KB
+
+        // 3. (Optional) Explicitly match content types
+        // Note: Ktor already ignores audio, video, image, and text/event-stream by default
+        matchContentType(
+            ContentType.Application.Json,
+            ContentType.Application.JavaScript,
+            ContentType.Text.Any
+        )
+
+        // 4. HTTPS Security: Mitigate BREACH attacks
+        condition {
+            // Only compress if the request is NOT a cross-site request
+            request.headers[HttpHeaders.Referrer]?.startsWith("https://planner.catharsis.computer/") == true
         }
     }
 }
@@ -69,14 +122,14 @@ fun Application.configureRouting() {
     routing {
         // 1. PUBLIC ROUTES: The shell and static assets must be accessible to everyone
         // so they can actually load the login page!
-        get("/") { 
-            // We only allow the Shell (index.html) to be public.
-            // If it's an Alpine AJAX request for the 'main' fragment, 
-            // we let the authenticated block below handle it.
-            if (call.request.headers["X-Alpine-Request"] == "true") {
-                call.respond(HttpStatusCode.Unauthorized, "Please login first.")
-            } else {
-                call.respondWithFragmentOrShell("main") 
+        authenticate("firebase", optional = true) {
+            get("/") { 
+                val isAlpine = call.request.headers["X-Alpine-Request"] == "true"
+                if (isAlpine && call.principal<UserIdPrincipal>() == null) {
+                    call.respond(HttpStatusCode.Unauthorized, "Please login first.")
+                } else {
+                    call.respondWithFragmentOrShell("main") 
+                }
             }
         }
 

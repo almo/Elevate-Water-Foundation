@@ -10,26 +10,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   
   <link rel="stylesheet" href="/style.css">
-
-  <style>
-    [x-cloak] { display: none !important; }
-    
-    .full-screen-center {
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .error-box {
-      margin-bottom: var(--space-4);
-      padding: var(--space-3);
-      background: #fef2f2;
-      border-left: 4px solid #ef4444;
-      text-align: left;
-      border-radius: 4px;
-    }
-  </style>
 </head>
 
 <body x-data x-cloak>
@@ -58,7 +38,7 @@
               <span x-text="$store.auth.error"></span>
             </div>
             <p style="margin-top: 4px; font-size: 0.75rem; color: #991b1b;">
-              Contact <span class="font-medium">almo@linux.com</span> for access.
+              Contact <span class="font-medium">contact@ewaterf.org</span> for access.
             </p>
           </div>
         </template>
@@ -75,20 +55,20 @@
   </template>
 
   <template x-if="$store.auth.initialized && $store.auth.user">
-    <div class="layout-wrapper" x-data="{ sidebarOpen: true }">
+    <div class="layout-wrapper" x-data="{ sidebarOpen: true }" x-init="window.loadInitialFragment()">
 
       <nav class="sidebar" :class="{ 'closed': !sidebarOpen }" x-data="sidebarNav()">
         <div class="sidebar-brand">EWI Platform</div>
 
         <div class="nav-group">
-          <a href="/" x-target="content" class="nav-link" :class="{ 'active': isActive('/') }">
+          <a href="/" x-target="content" class="nav-link" :class="{ 'active': isActive('/') }" @click="currentPath = '/'">
             <svg class="icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
             <span x-text="$store.i18n.t('nav.ew_index')">EW Index</span>
           </a>
           
-          <a href="/settings" x-target="content" class="nav-link" :class="{ 'active': isActive('/settings') }">
+          <a href="/settings" x-target="content" class="nav-link" :class="{ 'active': isActive('/settings') }" @click="currentPath = '/settings'">
             <svg class="icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
               <circle cx="12" cy="12" r="3"></circle>

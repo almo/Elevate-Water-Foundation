@@ -35,7 +35,7 @@ export default {
             } else if (error.code === 'auth/popup-closed-by-user') {
                 this.error = "Login window was closed.";
             } else {
-                this.error = "Authentication failed. Please try again.";
+                this.error = "Authentication failed.";
             }
         }
     },

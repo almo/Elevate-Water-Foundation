@@ -2,6 +2,7 @@ import {setGlobalOptions} from "firebase-functions/v2";
 import {
   beforeUserCreated,
   beforeUserSignedIn,
+  AuthBlockingEvent,
 } from "firebase-functions/v2/identity";
 import {HttpsError} from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
@@ -11,6 +12,7 @@ if (admin.apps.length === 0) {
 }
 
 const db = admin.firestore();
+db.settings({databaseId: "elevate-water-index"});
 
 // 1. Set Global Region for all v2 functions
 setGlobalOptions({
@@ -21,29 +23,34 @@ setGlobalOptions({
 /**
  * Validates if an email exists in the 'invites' collection and is active.
  * @param {string | undefined} email The email of the user to check.
- * @return {Promise<boolean>} True if the invitation is valid and active.
+ * @return {Promise<{authorized: boolean, role?: string}>} The authorization status and role.
  */
-async function checkInvitation(email: string | undefined): Promise<boolean> {
-  if (!email) return false;
+async function checkInvitation(email: string | undefined): Promise<{authorized: boolean, role?: string}> {
+  if (!email) return { authorized: false };
 
   try {
     const inviteRef = db.collection("invites").doc(email);
     const inviteDoc = await inviteRef.get();
 
-    if (!inviteDoc.exists) return false;
+    if (!inviteDoc.exists) return { authorized: false };
 
     const data = inviteDoc.data();
-    return data?.active === true;
+    return {
+      authorized: data?.active === true,
+      role: data?.role
+    };
   } catch (error) {
     console.error("Invitation check failed:", error);
-    return false;
+    return { authorized: false };
   }
 }
+
 
 /**
  * TRIGGER: Runs during the first-ever sign up.
  */
-export const validateAndCreateUser = beforeUserCreated(async (event) => {
+export const validateAndCreateUser =
+beforeUserCreated(async (event: AuthBlockingEvent) => {
   const user = event.data;
 
   // GUARD: If no user data is present, block the request
@@ -52,10 +59,11 @@ export const validateAndCreateUser = beforeUserCreated(async (event) => {
   }
 
   const email = user.email;
-  const authorized = await checkInvitation(email);
+  const { authorized, role } = await checkInvitation(email);
 
   if (!authorized) {
-    throw new HttpsError("permission-denied", "User not invited or inactive.");
+    throw new HttpsError("permission-denied",
+      `User ${user.email} not invited or inactive.`);
   }
 
   const userRef = db.collection("users").doc(user.uid);
@@ -64,7 +72,7 @@ export const validateAndCreateUser = beforeUserCreated(async (event) => {
     email: email,
     displayName: user.displayName || "",
     photoURL: user.photoURL || "",
-    role: "viewer",
+    role: role || "user", // Fallback to "user" if role is missing in invite
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     lastLogin: admin.firestore.FieldValue.serverTimestamp(),
   });
@@ -73,13 +81,15 @@ export const validateAndCreateUser = beforeUserCreated(async (event) => {
 /**
  * TRIGGER: Runs on every subsequent login.
  */
-export const validateSignIn = beforeUserSignedIn(async (event) => {
+export const validateSignIn =
+beforeUserSignedIn(async (event: AuthBlockingEvent) => {
   const user = event.data;
   if (!user) throw new HttpsError("internal", "No user data found.");
 
-  const authorized = await checkInvitation(user.email);
+  const { authorized, role } = await checkInvitation(user.email);
   if (!authorized) {
-    throw new HttpsError("permission-denied", "Access denied.");
+    throw new HttpsError("permission-denied",
+      `User ${user.email} access denied.`);
   }
 
   const userRef = db.collection("users").doc(user.uid);
@@ -95,7 +105,7 @@ export const validateSignIn = beforeUserSignedIn(async (event) => {
         email: user.email,
         displayName: user.displayName || "Anonymous",
         photoURL: user.photoURL || "",
-        role: "viewer",
+        role: role || "viewer", // Fallback to "viewer" if role is missing in invite
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         lastLogin: admin.firestore.FieldValue.serverTimestamp(),
       });

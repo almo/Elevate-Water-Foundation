@@ -36,6 +36,10 @@ dependencies {
     
     // Google Auth for service account handling in App Engine
     implementation(libs.google.auth.library)
+
+    // Compression
+    implementation(libs.ktor.server.compression)
+    implementation(libs.ktor.server.compression.zstd)
 }
 
 application {

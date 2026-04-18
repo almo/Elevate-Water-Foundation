@@ -26,6 +26,11 @@ ktor-server-auth-jwt = { module = "io.ktor:ktor-server-auth-jwt-jvm", version.re
 ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation-jvm", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json-jvm", version.ref = "ktor" }
 
+# Compression
+ktor-server-compression = { module = "io.ktor:ktor-server-compression-jvm", version.ref = "ktor" }
+ktor-server-compression-zstd = { module = "io.ktor:ktor-server-compression-zstd-jvm", version.ref = "ktor" }
+
+
 # Logging (Standard for Ktor)
 logback-classic = { module = "ch.qos.logback:logback-classic", version = "1.5.6" }
 

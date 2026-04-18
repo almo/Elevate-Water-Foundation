@@ -433,7 +433,6 @@ input:focus {
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    object-fit: cover;
     border: 2px solid var(--color-neutral-100);
     background-color: var(--color-primary-50);
     display: flex;
@@ -443,8 +442,34 @@ input:focus {
     flex-shrink: 0;
 }
 
+.avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
 .avatar-placeholder {
     font-weight: 600;
     color: var(--color-primary-700);
     font-size: 0.875rem;
+}
+
+[x-cloak] {
+    display: none !important;
+}
+
+.full-screen-center {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.error-box {
+    margin-bottom: var(--space-4);
+    padding: var(--space-3);
+    background: #fef2f2;
+    border-left: 4px solid #ef4444;
+    text-align: left;
+    border-radius: 4px;
 }
